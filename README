@@ -1,0 +1,7 @@
+FlindersDSpace-exportItems
+--------------------------
+
+The purpose of this program is to export DSpace 5.x item metadata
+(including embargo info and pointers to bitstreams) into a file
+suitable for loading into another system.
+
