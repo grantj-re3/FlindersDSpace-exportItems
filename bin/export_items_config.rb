@@ -7,6 +7,7 @@
 
 module Item2ExportConfig
   DEBUG = true
+  DEBUG_DATE_FMT = "%Y-%m-%d %H:%M:%S %Z"
 
   # Force the extraction of the DSpace item package (using DSPACE_PKG_CMD_PART1
   # below) even if the resulting file already exists. Setting to false gives a

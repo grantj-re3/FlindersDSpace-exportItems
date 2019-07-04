@@ -203,7 +203,7 @@ class Item2Export
 
     if sf[:start_date] && !sf[:start_date].empty?
       o_start_date = Date.parse(sf[:start_date])
-      STDERR.printf "#{__method__}: o_start_date: %s\n", o_start_date.strftime("%Y-%m-%d %H:%M:%S %Z") if DEBUG
+      STDERR.printf "%-25s: start_date: %s\n", __method__, o_start_date.strftime(DEBUG_DATE_FMT) if DEBUG
 
       if o_start_date > EMBARGO_REF_DATE
         attrs[:has_embargo] = "true"
@@ -241,7 +241,7 @@ class Item2Export
 
     if sf[:start_date] && !sf[:start_date].empty?
       o_start_date = Date.parse(sf[:start_date])
-      STDERR.printf "#{__method__}: o_start_date: %s\n", o_start_date.strftime("%Y-%m-%d %H:%M:%S %Z") if DEBUG
+      STDERR.printf "%-25s: start_date: %s\n", __method__, o_start_date.strftime(DEBUG_DATE_FMT) if DEBUG
 
       if o_start_date > EMBARGO_REF_DATE
         attrs[:has_embargo] = "true"
@@ -283,7 +283,7 @@ class Item2Export
 
     if sf[:start_date] && !sf[:start_date].empty?
       o_start_date = Date.parse(sf[:start_date])
-      STDERR.printf "#{__method__}: o_start_date: %s\n", o_start_date.strftime("%Y-%m-%d %H:%M:%S %Z") if DEBUG
+      STDERR.printf "%-25s: start_date: %s\n", __method__, o_start_date.strftime(DEBUG_DATE_FMT) if DEBUG
 
       if o_start_date > EMBARGO_REF_DATE
         attrs[:has_embargo] = "true"
@@ -310,11 +310,11 @@ class Item2Export
     e.add_element("item_status", item_status_attrs)
 
     # Add embargo tree; XPath /dspace_item/custom/item_embargo/bundle_embargo/bitstream_embargo
-    STDERR.printf "\nEMBARGO_REF_DATE: %s\n", EMBARGO_REF_DATE.strftime("%Y-%m-%d %H:%M:%S %Z") if DEBUG
+    STDERR.printf "\nEMBARGO_REF_DATE                     : %s\n", EMBARGO_REF_DATE.strftime(DEBUG_DATE_FMT) if DEBUG
     e.add_element("item_embargo", item_embargo_attrs)
 
-    e = REXML::XPath.first(@doc, "//item_embargo")
     if bundle_embargo_attrs
+      e = REXML::XPath.first(@doc, "//item_embargo")
       e.add_element("bundle_embargo", bundle_embargo_attrs)
 
       e = REXML::XPath.first(@doc, "//bundle_embargo")
