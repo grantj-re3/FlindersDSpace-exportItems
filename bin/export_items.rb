@@ -103,15 +103,15 @@ class Item2Export
 	  item_id, in_archive, withdrawn, discoverable,
 
 	  (select resource_id || '^' || policy_id || '^' || action_id || '^' ||
-            (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end)
-	    from resourcepolicy p where p.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and p.resource_id=i.item_id) item_policy,
+             (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end)
+	   from resourcepolicy p where p.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and p.resource_id=i.item_id) item_policy,
 
 	  (select resource_id || '^' || policy_id || '^' || action_id || '^' ||
-            (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end) || '^#{bundle_title}'
-	    from resourcepolicy p where p.resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and p.resource_id=
-	      (select resource_id from metadatavalue where text_value='#{bundle_title}' and resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and resource_id in
+             (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end) || '^#{bundle_title}'
+	   from resourcepolicy p where p.resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and p.resource_id=
+	     (select resource_id from metadatavalue where text_value='#{bundle_title}' and resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and resource_id in
                 #{bundle_clause}
-	      )
+	     )
 	  ) bundle_policy,
 
 	  array_to_string(array(
@@ -120,13 +120,13 @@ class Item2Export
 	      deleted || '^' || sequence_id || '^' || size_bytes || '^' || internal_id || '^' ||
 	      #{bitstream_text_value_clause('title')} || '^' ||
 	      #{bitstream_text_value_clause('description')}
-	      from resourcepolicy p, bitstream b
-              where p.resource_type_id=#{RESOURCE_TYPE_IDS[:bitstream]} and p.resource_id=b.bitstream_id and b.deleted='f' and b.bitstream_id in
-	        (select bitstream_id from bundle2bitstream where bundle_id=
-	          (select resource_id from metadatavalue where text_value='#{bundle_title}' and resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and resource_id in
-                    #{bundle_clause}
-	          )
+	    from resourcepolicy p, bitstream b
+            where p.resource_type_id=#{RESOURCE_TYPE_IDS[:bitstream]} and p.resource_id=b.bitstream_id and b.deleted='f' and b.bitstream_id in
+	      (select bitstream_id from bundle2bitstream where bundle_id=
+	        (select resource_id from metadatavalue where text_value='#{bundle_title}' and resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and resource_id in
+                  #{bundle_clause}
 	        )
+	      )
 	  ), '||') bitstream_policies
 	from item i
 	where i.item_id=#{@item_id} ;
