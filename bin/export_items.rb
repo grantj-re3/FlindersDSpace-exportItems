@@ -78,10 +78,17 @@ class Item2Export
   end
 
   ############################################################################
+  def bitstream_text_value_clause(element_name)
+    # For element_name 'title', clause will extract bitstream filename
+    # For element_name 'description', clause will extract bitstream file description
+    <<-SQL_BITSTREAM_TEXT_VALUE_CLAUSE.gsub(/^\t*/, '')
+	      (select text_value from metadatavalue where resource_type_id=0 and resource_id=b.bitstream_id and metadata_field_id in
+	        (select metadata_field_id from metadatafieldregistry where qualifier is null and element='#{element_name}')) 
+    SQL_BITSTREAM_TEXT_VALUE_CLAUSE
+  end
+
+  ############################################################################
   def get_item_sql_query
-    # FIXME: Consider extracting bitstream filename/desc? At dc.title & dc.description
-    # select * from metadatavalue where resource_type_id=0 and resource_id=73196 and metadata_field_id in
-    #   (select metadata_field_id from metadatafieldregistry where qualifier is null and element in ('title','description'));
     bundle_title = 'ORIGINAL'
     bundle_clause = <<-SQL_BUNDLE_CLAUSE.gsub(/^\t*/, '')
 	            (select bundle_id from item2bundle i2b where i2b.item_id=#{@item_id}) and metadata_field_id =
@@ -109,8 +116,10 @@ class Item2Export
 
 	  array_to_string(array(
 	    select resource_id || '^' || policy_id || '^' || action_id || '^' ||
-              (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end) ||
-	      '^' || deleted || '^' || sequence_id || '^' || size_bytes || '^' || internal_id
+	      (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end) || '^' ||
+	      deleted || '^' || sequence_id || '^' || size_bytes || '^' || internal_id || '^' ||
+	      #{bitstream_text_value_clause('title')} || '^' ||
+	      #{bitstream_text_value_clause('description')}
 	      from resourcepolicy p, bitstream b
               where p.resource_type_id=#{RESOURCE_TYPE_IDS[:bitstream]} and p.resource_id=b.bitstream_id and b.deleted='f' and b.bitstream_id in
 	        (select bitstream_id from bundle2bitstream where bundle_id=
