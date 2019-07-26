@@ -102,9 +102,11 @@ class Item2Export
 	  (select handle from handle h where h.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and h.resource_id=i.item_id) item_hdl,
 	  item_id, in_archive, withdrawn, discoverable,
 
-	  (select resource_id || '^' || policy_id || '^' || action_id || '^' ||
-             (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end)
-	   from resourcepolicy p where p.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and p.resource_id=i.item_id) item_policy,
+	  array_to_string(array(
+	    select resource_id || '^' || policy_id || '^' || action_id || '^' ||
+              (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end)
+	    from resourcepolicy p where p.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and p.resource_id=i.item_id
+	  ), '||') item_policies,
 
 	  (select resource_id || '^' || policy_id || '^' || action_id || '^' ||
              (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end) || '^#{bundle_title}'
@@ -157,7 +159,7 @@ class Item2Export
             :withdrawn			=> row['withdrawn'],
             :discoverable		=> row['discoverable'],
 
-            :item_policy		=> row['item_policy'],
+            :item_policies		=> row['item_policies'],
             :bundle_policy		=> row['bundle_policy'],
             :bitstream_policies		=> row['bitstream_policies'],
           } 
@@ -196,9 +198,9 @@ class Item2Export
   end
 
   ############################################################################
-  def item_embargo_attrs
+  def item_embargo_attrs(s_item_policy)
     sf = {}					# DB subfields
-    sf[:item_id], sf[:policy_id], sf[:action_id], sf[:start_date] = @item[:item_policy].split(SUBFIELD_DELIM)
+    sf[:item_id], sf[:policy_id], sf[:action_id], sf[:start_date] = s_item_policy.split(SUBFIELD_DELIM)
     unless sf[:action_id] == POLICY_ACTION_IDS[:read].to_s
       puts "ERROR: For item_id #{item_id}, expected action_id of #{POLICY_ACTION_IDS[:read]} but got #{sf[:action_id]}."
       exit(2)
@@ -320,10 +322,12 @@ class Item2Export
 
     # Add embargo tree; XPath /dspace_item/custom/item_embargo/bundle_embargo/bitstream_embargo
     STDERR.printf "\nEMBARGO_REF_DATE                     : %s\n", EMBARGO_REF_DATE.strftime(DEBUG_DATE_FMT) if DEBUG
-    e.add_element("item_embargo", item_embargo_attrs)
+    @item[:item_policies].split(MULTIVALUE_DELIM).each{|ip|
+      e.add_element("item_embargo", item_embargo_attrs(ip))
+    }
 
     if bundle_embargo_attrs
-      e = REXML::XPath.first(@doc, "//item_embargo")
+      e = REXML::XPath.first(@doc, "//item_embargo[last()]")
       e.add_element("bundle_embargo", bundle_embargo_attrs)
 
       e = REXML::XPath.first(@doc, "//bundle_embargo")
@@ -427,12 +431,17 @@ class Item2Export
     item_info_list.each{|item_id, descr|
       STDERR.puts "\n### item_id='#{item_id}' -- #{descr}"
       item = Item2Export.new(item_id)
-      item.get_item_from_db
-      item.create_custom_xml
-      item.save_custom_xml
-      # FIXME:
-      # - In the output dir, add bitstream symlink (into assetstore)
-      # - Consider adding an ID (within XML) which matches the other system
+      begin
+        item.get_item_from_db
+        item.create_custom_xml
+        item.save_custom_xml
+        # FIXME:
+        # - In the output dir, add bitstream symlink (into assetstore)
+        # - Consider adding an ID (within XML) which matches the other system
+
+      rescue Exception => e
+        STDERR.puts "ERROR item_id:'#{item_id}' -- #{e.inspect}"
+      end
     }
   end
 
