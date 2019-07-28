@@ -82,8 +82,8 @@ class Item2Export
     # For element_name 'title', clause will extract bitstream filename
     # For element_name 'description', clause will extract bitstream file description
     <<-SQL_BITSTREAM_TEXT_VALUE_CLAUSE.gsub(/^\t*/, '')
-	      (select text_value from metadatavalue where resource_type_id=0 and resource_id=b.bitstream_id and metadata_field_id in
-	        (select metadata_field_id from metadatafieldregistry where qualifier is null and element='#{element_name}')) 
+	      coalesce((select text_value from metadatavalue where resource_type_id=0 and resource_id=b.bitstream_id and metadata_field_id in
+	        (select metadata_field_id from metadatafieldregistry where qualifier is null and element='#{element_name}')), '')
     SQL_BITSTREAM_TEXT_VALUE_CLAUSE
   end
 
@@ -271,6 +271,7 @@ class Item2Export
   ###########################################################################
   def bitstream_embargo_attrs(s_bitstream_policy)
     sf = {}					# Subfields
+    # FIXME: Extract & process: bitstream_title, bitstream_descr
     sf[:bitstream_id], sf[:policy_id], sf[:action_id], sf[:start_date],
       sf[:deleted], sf[:seq], sf[:bytes], sf[:internal_id] = s_bitstream_policy.split(SUBFIELD_DELIM)
     unless sf[:action_id] == POLICY_ACTION_IDS[:read].to_s
