@@ -89,6 +89,7 @@ class Item2Export
 
   ############################################################################
   def get_item_sql_query
+    # FIXME: Use SQL COALESCE for start_date, etc.
     bundle_title = 'ORIGINAL'
     bundle_clause = <<-SQL_BUNDLE_CLAUSE.gsub(/^\t*/, '')
 	            (select bundle_id from item2bundle i2b where i2b.item_id=#{@item_id}) and metadata_field_id =
@@ -271,14 +272,23 @@ class Item2Export
   ###########################################################################
   def bitstream_embargo_attrs(s_bitstream_policy)
     sf = {}					# Subfields
-    # FIXME: Extract & process: bitstream_title, bitstream_descr
     sf[:bitstream_id], sf[:policy_id], sf[:action_id], sf[:start_date],
-      sf[:deleted], sf[:seq], sf[:bytes], sf[:internal_id] = s_bitstream_policy.split(SUBFIELD_DELIM)
+      sf[:deleted], sf[:seq], sf[:bytes], sf[:internal_id],
+      sf[:fname], sf[:fdesc] = s_bitstream_policy.split(SUBFIELD_DELIM)
     unless sf[:action_id] == POLICY_ACTION_IDS[:read].to_s
       puts "ERROR: For bitstream_id #{sf[:bitstream_id]}, expected action_id of #{POLICY_ACTION_IDS[:read]} but got #{sf[:action_id]}."
       exit(4)
     end
+
     sf[:fpath] = DSPACE_ASSETSTORE_DIRPATH + sf[:internal_id].sub(/^((\d\d)(\d\d)(\d\d)(.*))$/, '\2/\3/\4/\1')
+    sf[:docversion] = case sf[:fdesc].to_s
+    when /author/i
+      "author"
+    when /publish/i
+      "publisher"
+    else
+      "unknown"
+    end
 
     # FIXME: Process: :deleted
     attrs = {}					# XML attributes
@@ -290,7 +300,11 @@ class Item2Export
       :deleted,
       :seq,
       :bytes,
+
       :fpath,
+      :fname,
+      :fdesc,
+      :docversion,
     ].each{|k| attrs[k] = sf[k]}
 
     if sf[:start_date] && !sf[:start_date].empty?
@@ -328,10 +342,8 @@ class Item2Export
     }
 
     if bundle_embargo_attrs
-      e = REXML::XPath.first(@doc, "//item_embargo[last()]")
       e.add_element("bundle_embargo", bundle_embargo_attrs)
 
-      e = REXML::XPath.first(@doc, "//bundle_embargo")
       @item[:bitstream_policies].split(MULTIVALUE_DELIM).each{|bsp|
         e.add_element("bitstream_embargo", bitstream_embargo_attrs(bsp))
       }
