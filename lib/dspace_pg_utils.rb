@@ -51,6 +51,7 @@ module DSpacePgUtils
     :default_bitstream_read	=> 9,
     :default_item_read		=> 10,
     :admin			=> 11,
+    :withdrawn_read		=> 12,
   }
 
   # This table shows the inverse. ie. POLICY_ACTION[action_id] = action

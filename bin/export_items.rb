@@ -67,6 +67,7 @@ class Item2Export
   include Item2ExportConfig
 
   EMBARGO_REF_DATE = Date.today
+  S_OK_ACTION_IDS = [:read, :withdrawn_read].map{|action| POLICY_ACTION_IDS[action].to_s}
 
   ############################################################################
   def initialize(item_id)
@@ -203,7 +204,7 @@ class Item2Export
     sf = {}					# DB subfields
     sf[:item_id], sf[:policy_id], sf[:action_id], sf[:start_date] = s_item_policy.split(SUBFIELD_DELIM)
     unless sf[:action_id] == POLICY_ACTION_IDS[:read].to_s
-      puts "ERROR: For item_id #{item_id}, expected action_id of #{POLICY_ACTION_IDS[:read]} but got #{sf[:action_id]}."
+      puts "ERROR: For item_id #{@item_id}, expected action_id of #{POLICY_ACTION_IDS[:read]} but got '#{sf[:action_id]}'."
       exit(2)
     end
 
@@ -238,8 +239,12 @@ class Item2Export
 
     sf = {}					# Subfields
     sf[:bundle_id], sf[:policy_id], sf[:action_id], sf[:start_date], sf[:bundle_title] = @item[:bundle_policy].split(SUBFIELD_DELIM)
-    unless sf[:action_id] == POLICY_ACTION_IDS[:read].to_s
-      puts "ERROR: For bundle_id #{sf[:bundle_id]}, expected action_id of #{POLICY_ACTION_IDS[:read]} but got #{sf[:action_id]}."
+    # FIXME:
+    # - Deal with policy action 12 (WITHDRAWN_READ) [item.withdrawn='t'] later.
+    # - Consider adding <item_status state="ignore" reason="withdrawn"/> vs <item_status state="ok"
+    # - Consider writing to different output dir?
+    unless S_OK_ACTION_IDS.include?(sf[:action_id])
+      puts "ERROR: For bundle_id #{sf[:bundle_id]}, expected action_id of #{S_OK_ACTION_IDS.join(',')} but got '#{sf[:action_id]}'."
       exit(3)
     end
 
@@ -275,8 +280,12 @@ class Item2Export
     sf[:bitstream_id], sf[:policy_id], sf[:action_id], sf[:start_date],
       sf[:deleted], sf[:seq], sf[:bytes], sf[:internal_id],
       sf[:fname], sf[:fdesc] = s_bitstream_policy.split(SUBFIELD_DELIM)
-    unless sf[:action_id] == POLICY_ACTION_IDS[:read].to_s
-      puts "ERROR: For bitstream_id #{sf[:bitstream_id]}, expected action_id of #{POLICY_ACTION_IDS[:read]} but got #{sf[:action_id]}."
+    # FIXME:
+    # - Deal with policy action 12 (WITHDRAWN_READ) [item.withdrawn='t'] later.
+    # - Consider adding <item_status state="ignore" reason="withdrawn"/> vs <item_status state="ok"
+    # - Consider writing to different output dir?
+    unless S_OK_ACTION_IDS.include?(sf[:action_id])
+      puts "ERROR: For bitstream_id #{sf[:bitstream_id]}, expected action_id of #{S_OK_ACTION_IDS.join(',')} but got '#{sf[:action_id]}'."
       exit(4)
     end
 
@@ -335,11 +344,15 @@ class Item2Export
     e.add_element("item_ids", item_ids_attrs)
     e.add_element("item_status", item_status_attrs)
 
-    # Add embargo tree; XPath /dspace_item/custom/item_embargo/bundle_embargo/bitstream_embargo
     STDERR.printf "\nEMBARGO_REF_DATE                     : %s\n", EMBARGO_REF_DATE.strftime(DEBUG_DATE_FMT) if DEBUG
-    @item[:item_policies].split(MULTIVALUE_DELIM).each{|ip|
-      e.add_element("item_embargo", item_embargo_attrs(ip))
-    }
+    if @item[:item_policies].to_s.empty?
+      e.add_element("item_embargo", nil)		# Withdrawn item
+
+    else
+      @item[:item_policies].split(MULTIVALUE_DELIM).each{|ip|
+        e.add_element("item_embargo", item_embargo_attrs(ip))
+      }
+    end
 
     if bundle_embargo_attrs
       e.add_element("bundle_embargo", bundle_embargo_attrs)
