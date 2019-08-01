@@ -54,8 +54,18 @@ module DSpacePgUtils
     :withdrawn_read		=> 12,
   }
 
-  # This table shows the inverse. ie. POLICY_ACTION[action_id] = action
-  POLICY_ACTION = POLICY_ACTION_IDS.invert
+  # This table shows the inverse. ie. POLICY_ACTIONS[action_id] = action
+  POLICY_ACTIONS = POLICY_ACTION_IDS.invert
+
+  # This hash shows the relationship between the DSpace resourcepolicy table's
+  # epersongroup_id and its group. ie. EPERSON_GROUP_IDS[group] = group_id
+  EPERSON_GROUP_IDS = {
+    :public	=> 0,
+    :admin	=> 1,
+  }
+
+  # This table shows the inverse. ie. EPERSON_GROUPS[group_id] = group
+  EPERSON_GROUPS = EPERSON_GROUP_IDS.invert
 
   private
 

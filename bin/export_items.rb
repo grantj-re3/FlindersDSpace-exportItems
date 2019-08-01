@@ -107,12 +107,12 @@ class Item2Export
 	  array_to_string(array(
 	    select resource_id || '^' || policy_id || '^' || action_id || '^' ||
               (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end)
-	    from resourcepolicy p where p.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and p.resource_id=i.item_id
+	    from resourcepolicy p where p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and p.resource_id=i.item_id
 	  ), '||') item_policies,
 
 	  (select resource_id || '^' || policy_id || '^' || action_id || '^' ||
              (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end) || '^#{bundle_title}'
-	   from resourcepolicy p where p.resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and p.resource_id=
+	   from resourcepolicy p where p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and p.resource_id=
 	     (select resource_id from metadatavalue where text_value='#{bundle_title}' and resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and resource_id in
                 #{bundle_clause}
 	     )
@@ -125,7 +125,7 @@ class Item2Export
 	      #{bitstream_text_value_clause('title')} || '^' ||
 	      #{bitstream_text_value_clause('description')}
 	    from resourcepolicy p, bitstream b
-            where p.resource_type_id=#{RESOURCE_TYPE_IDS[:bitstream]} and p.resource_id=b.bitstream_id and b.deleted='f' and b.bitstream_id in
+            where p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:bitstream]} and p.resource_id=b.bitstream_id and b.deleted='f' and b.bitstream_id in
 	      (select bitstream_id from bundle2bitstream where bundle_id=
 	        (select resource_id from metadatavalue where text_value='#{bundle_title}' and resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and resource_id in
                   #{bundle_clause}
