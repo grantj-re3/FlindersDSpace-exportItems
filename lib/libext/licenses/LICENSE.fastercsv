@@ -1,8 +1,11 @@
-License Terms
+= License Terms
 
-Distributed under the users choice of the GPL Version 2 (see COPYING for details) or the Ruby software license by James Edward Gray II.
+This project is copyright Gray Productions Software Inc. and Ubiquitous Business Technology, Inc. with all rights reserved.
 
-Please email James with any questions.
+Distributed under the user's choice of the {GPL Version 2}[http://www.gnu.org/licenses/old-licenses/gpl-2.0.html] (see COPYING for details) or the
+{Ruby software license}[http://www.ruby-lang.org/en/LICENSE.txt] by
+James Edward Gray II.
 
-[See http://fastercsv.rubyforge.org]
+Please email James[mailto:james@grayproductions.net] with any questions.
 
+[See https://github.com/JEG2/faster_csv]
