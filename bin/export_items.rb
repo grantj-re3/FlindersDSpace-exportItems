@@ -517,6 +517,26 @@ class Item2Export
   end
 
   ############################################################################
+  # FIXME:
+  # IF dois.length > 1 THEN
+  # - write outfile to outDoNotLoad dir
+  # - write notification to STDOUT
+  def get_clean_doi
+    dois = []
+    doi_msgs = []
+    return [dois, doi_msgs.join("; ")] if @dc[:doi].empty?
+    dois = @dc[:doi].inject([]){|a,s_doi|
+      a << s_doi.gsub(DOI_DEL_URL_REGEX, "").strip
+    }
+
+    prev_num_dois = dois.length
+    dois.uniq!				# Remove duplicate DOIs
+    doi_msgs << "De-dupped DOIs" if dois.length != prev_num_dois
+    doi_msgs << "WARNING - more than 1 DOI - process manually" if dois.length > 1
+    [dois, doi_msgs.join("; ")]
+  end
+
+  ############################################################################
   # Look for Elsevier in dc.publisher (& dc.rights & dc.description)
   def get_publisher_elsevier
     # Must be the publisher if found in dc.publisher
@@ -601,7 +621,7 @@ class Item2Export
     # Dublin Core info used in CSV or deriving other info
     # eg. itemlicence, publisher_elsevier, grant_info.
     # Initialise the @dc (Dublin Core) hash
-    dc_elem_keys = [:description, :publisher, :rights, :grantnumber, :relation, :title]
+    dc_elem_keys = [:description, :doi, :publisher, :rights, :grantnumber, :relation, :title]
     @dc = dc_elem_keys.inject({}){|h,k| h[k] = []; h}
 
     # Populate the @dc hash
@@ -617,6 +637,7 @@ class Item2Export
     @misc[:itemlicence] = get_licence_step1_per_item
     @misc[:publisher_elsevier] = get_publisher_elsevier
     @misc[:grant_warnings], @misc[:grant_info] = get_grant_info
+    @misc[:doi_clean], @misc[:doi_msg] = get_clean_doi
 
     # FIXME: Test this with deleted bitstreams - cannot find any.
     attrs_bs = @attrs[:bitstream]
@@ -654,6 +675,8 @@ class Item2Export
       @misc[:grant_warnings].join(MULTIVALUE_DELIM),
       @misc[:grant_info].inject([]){|a,(grant_ref,_)| a << grant_ref; a}.join(MULTIVALUE_DELIM),
       @misc[:grant_info].inject([]){|a,(_,grant_purl)| a << grant_purl; a}.join(MULTIVALUE_DELIM),
+      @misc[:doi_clean].join(MULTIVALUE_DELIM),
+      @misc[:doi_msg],
 
       @dc[:publisher].join(MULTIVALUE_DELIM),
       @dc[:grantnumber].join(MULTIVALUE_DELIM),
@@ -738,6 +761,8 @@ class Item2Export
       grant_warnings
       grant_ref
       grant_purl
+      dois_raw
+      doi_msg
 
       dc_publisher
       dc_relation_grantnumber
@@ -830,7 +855,11 @@ class Item2Export
       # Tests with CC-BY-* licences
       [38739,	"123456789/38271 ; X; CBY- NC-ND in dc.description & dc.rights; abbr + url"],
       [38738,	"123456789/38270 ; X; CCBY- NC-ND in dc.description & dc.rights; abbr + url"],
-      [38733,	"123456789/38265 ; X; CCBY- NC-ND in dc.description & dc.rights; abbr + url"],
+
+      [38733,	"123456789/38265 ; X; CCBY- NC-ND in dc.description & dc.rights; abbr + url; 1x DOI"],
+      [39256,	"123456789/38794 ; X; 2x DOI"],
+      [39614,	"123456789/39151 ; X; 2x DOI dup"],
+      [39771,	"123456789/39299 ; X; 0x DOI"],
 
       [38639,	"123456789/38168 ; X; CCBY- NC-ND in dc.rights; abbr + url"],
       [38117,	"123456789/37695 ; X: CCBY in dc.description; abbr + url"],

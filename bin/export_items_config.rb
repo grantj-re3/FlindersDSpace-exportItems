@@ -45,6 +45,7 @@ module Item2ExportConfig
   XPATH_DC_PREFIX = "/mets/dmdSec/mdWrap/xmlData/dim:dim/dim:field"
   XPATH_DC = {
     :description	=> "#{XPATH_DC_PREFIX}[@element='description'][not(@qualifier)]",
+    :doi		=> "#{XPATH_DC_PREFIX}[@element='identifier'][@qualifier='doi']",
     :publisher		=> "#{XPATH_DC_PREFIX}[@element='publisher'][not(@qualifier)]",
     :rights		=> "#{XPATH_DC_PREFIX}[@element='rights'][not(@qualifier)]",
     :relation		=> "#{XPATH_DC_PREFIX}[@element='relation'][not(@qualifier)]",
@@ -95,13 +96,13 @@ module Item2ExportConfig
   }
   LICENCE_URL_REGEX_LIST = Hash[LICENCE_URL_K_V_LIST]
 
+  DOI_DEL_URL_REGEX = /^.*doi\.org\//i
+
   # FasterCSV options for writing CSV to output
   FCSV_OUT_OPTS = {
     :col_sep => ',',
     :headers => true,
     :force_quotes => true,
   }
-
-  MAX_ITEMS_TO_PROCESS = 1000	# FIXME: Currently unused
 end
 
