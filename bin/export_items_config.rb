@@ -6,6 +6,9 @@
 # Config vars for ruby
 ##############################################################################
 module Item2ExportConfig
+  ### :DspaceDoiToPureRmid, :DspaceRmidToPureRmid
+  HOW_TO_MATCH = :DspaceDoiToPureRmid
+
   DEBUG = true
   DEBUG_DATE_FMT = "%Y-%m-%d %H:%M:%S %Z"
 
@@ -20,20 +23,38 @@ module Item2ExportConfig
   MULTIVALUE_DELIM = "||"	# Usage: "fldA||fldB"
   SUBFIELD_DELIM = "^"		# Usage: "subfldA1^subfldA2^subfldA3"
 
+  # Item is ok for exporting if database attributes match those below
+  ITEM_STATUS_OK = {
+    :discoverable	=> 't',
+    :in_archive		=> 't',
+    :withdrawn		=> 'f',
+  }
+
   # Files & dirs
   DIR_TOP = File.expand_path("..", File.dirname(__FILE__))
   DIR_RESULTS = "#{DIR_TOP}/results"
   DIR_BIN = "#{DIR_TOP}/bin"
-  FPATH_CSV_OUT = "#{DIR_BIN}/dataReview.csv"
+  FPATH_CSV_IN_ID_DOI = "#{DIR_BIN}/pureRmDois.psv"
+  FPATH_CSV_IN_RMIDS = "#{DIR_BIN}/pureRmids.psv"
 
-  DIR_DSPACE_PACKAGE = "#{DIR_TOP}/results/aip"
+  FPATH_CSV_OUT = "#{DIR_RESULTS}/dataReview.csv"
+  FPATH_CSV_OUT_OMIT = "#{DIR_RESULTS}/dataOmit.csv"
+
+  DIR_DSPACE_PACKAGE = "#{DIR_RESULTS}/aip"
   BASENAME_DSPACE_PACKAGE = "aip_"
 
-  DIR_DSPACE_OUT = "#{DIR_TOP}/results/out"
+  DIR_DSPACE_OUT = "#{DIR_RESULTS}/out"
+  DIR_DSPACE_OUT_OMIT = "#{DIR_DSPACE_OUT}_omit"
   BASENAME_DSPACE_OUT = "out_"
+
+  # Filepath components which point to Pure Research Output API records
+  DIR_PURE_RSOUT = "/pure/research-output-api/rmids/prd_batch_all"
+  FILE_PREFIX_PURE_RSOUT = "pureIdsByRmid_"
+  FILE_EXT_PURE_RSOUT = "xml"
 
   # DSpace parameters
   DSPACE_ASSETSTORE_DIRPATH = "/file/path/to/dspace/assetstore/"
+  DSPACE_ASSETSTORE_BASE_URL = "https://example.com/dspace-assetstore/"
 
   HANDLE_URL_LEFT_STRING = 'https://dspace.example.com/xmlui/handle/'
 
@@ -46,14 +67,24 @@ module Item2ExportConfig
   XPATH_DC = {
     :description	=> "#{XPATH_DC_PREFIX}[@element='description'][not(@qualifier)]",
     :doi		=> "#{XPATH_DC_PREFIX}[@element='identifier'][@qualifier='doi']",
+    :rmid		=> "#{XPATH_DC_PREFIX}[@element='identifier'][@qualifier='rmid']",
     :publisher		=> "#{XPATH_DC_PREFIX}[@element='publisher'][not(@qualifier)]",
     :rights		=> "#{XPATH_DC_PREFIX}[@element='rights'][not(@qualifier)]",
+    :license		=> "#{XPATH_DC_PREFIX}[@element='rights'][@qualifier='license']",
     :relation		=> "#{XPATH_DC_PREFIX}[@element='relation'][not(@qualifier)]",
     :grantnumber	=> "#{XPATH_DC_PREFIX}[@element='relation'][@qualifier='grantnumber']",
     :title		=> "#{XPATH_DC_PREFIX}[@element='title'][not(@qualifier)]",
   }
 
+  VERBOSE_DOCVERSIONS = {
+    "author"	=> "AuthorAcceptedManuscript",
+    "publisher"	=> "FinalPublishedVersion",
+    "unknown"	=> "OtherVersion",
+  }
+
   # Regular expressions for detecting various parameters
+  OPEN_ACCESS_HOST_REGEX = /^fac($|\.)/
+
   ELSEVIER_REGEX = /(^|\W)elsevier($|\W)/i
 
   PURL_MID = "purl.org/au-research/grants"
@@ -86,6 +117,17 @@ module Item2ExportConfig
   }
   LICENCE_ABBR_REGEX_LIST = Hash[LICENCE_ABBR_K_V_LIST]
 
+  LICENCE_ABBR_TARGETS = [
+    "CC0",
+    "CC-BY",
+    "CC-BY-NC",
+    "CC-BY-NC-ND",
+    "CC-BY-NC-SA",
+    "CC-BY-ND",
+    "CC-BY-SA",
+    "In Copyright",
+  ]
+
   # Regexs for matching licence URLs
   # - Permit zero or more white-space chars (including newline) on either side of "/"
   LICENCE_URL_MID = "creativecommons.org/licenses/"
@@ -97,6 +139,12 @@ module Item2ExportConfig
   LICENCE_URL_REGEX_LIST = Hash[LICENCE_URL_K_V_LIST]
 
   DOI_DEL_URL_REGEX = /^.*doi\.org\//i
+
+  # XPath (excluding root element) to various Pure Research Output API XML elements
+  XPATH_RSOUT_DOI	= "electronicVersions/electronicVersion/doi"
+  XPATH_RSOUT_EXT_ID	= "info/additionalExternalIds/id"
+  XPATH_RSOUT_UUID	= "info/previousUuids/previousUuid"
+  XPATH_RSOUT_PORTAL	= "info/portalUrl"
 
   # FasterCSV options for writing CSV to output
   FCSV_OUT_OPTS = {
