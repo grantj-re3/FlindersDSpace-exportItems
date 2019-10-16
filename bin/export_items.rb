@@ -1122,6 +1122,7 @@ class Item2Export
     require 'item_ids_omit'	# ItemIdsOmit.item_list() has list of item_ids to exclude
     initialise_is_open_access
     initialise_match
+    FileUtils.mkdir_p(File.dirname(FPATH_CSV_OUT))
 
     # Open CSV files for output
     FasterCSV.open(FPATH_CSV_OUT, "w", FCSV_OUT_OPTS){|csv_out| 
