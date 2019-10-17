@@ -1118,11 +1118,22 @@ class Item2Export
   end
 
   ############################################################################
+  def self.warn_if_xml_dirs_not_empty
+    [DIR_DSPACE_OUT, DIR_DSPACE_OUT_OMIT].each{|dir|
+      if File.directory?(dir)
+        num_files = (Dir.entries(dir) - %w{. ..}).size	# Ignore self-dir & parent-dir
+        STDERR.puts "WARNING: Directory #{dir} is not empty (contains #{num_files} files/dirs)." if num_files > 0
+      end
+    }
+  end
+
+  ############################################################################
   def self.process_item_batch(item_batch, batch_type)
     require 'item_ids_omit'	# ItemIdsOmit.item_list() has list of item_ids to exclude
     initialise_is_open_access
     initialise_match
-    FileUtils.mkdir_p(File.dirname(FPATH_CSV_OUT))
+    warn_if_xml_dirs_not_empty
+    FileUtils.mkdir_p(File.dirname(DIR_RESULTS))	# Dir containing CSV files
 
     # Open CSV files for output
     FasterCSV.open(FPATH_CSV_OUT, "w", FCSV_OUT_OPTS){|csv_out| 
