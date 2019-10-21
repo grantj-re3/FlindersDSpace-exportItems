@@ -615,13 +615,18 @@ class Item2Export
 
   ############################################################################
   def get_licence_from_authority
-    @dc[:license].each{|desc|
-      unless LICENCE_ABBR_TARGETS.include?(desc)
-        # FIXME: Verify with real data
-        STDERR.puts "WARNING: #{__method__}: Unexpected licence '#{desc}'"
-      end
-      return desc
-    }
+    if @dc[:license].empty?
+      STDERR.puts "WARNING: #{__method__}: No licence"
+
+    else
+      @dc[:license].each{|desc|
+        unless LICENCE_ABBR_TARGETS.include?(desc)
+          # FIXME: Verify with real data
+          STDERR.puts "WARNING: #{__method__}: Unexpected licence '#{desc}'"
+        end
+        return desc
+      }
+    end
     nil
   end
 
