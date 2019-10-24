@@ -71,7 +71,10 @@ class Item2Export
   include Item2ExportConfig
 
   EMBARGO_REF_DATE = Date.today
+
+  DUMMY_ID = -1			# Used to replace a NULL database ID
   S_OK_ACTION_IDS = [:read, :withdrawn_read].map{|action| POLICY_ACTION_IDS[action].to_s}
+  S_OK_ACTION_IDS << DUMMY_ID.to_s
 
   HOW_TO_MATCH_LIST = [
     :DspaceDoiToPureRmid,
@@ -132,28 +135,34 @@ class Item2Export
 	  item_id, in_archive, withdrawn, discoverable,
 
 	  array_to_string(array(
-	    select resource_id || '^' || policy_id || '^' || action_id || '^' ||
-              (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end)
-	    from resourcepolicy p where p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and p.resource_id=i.item_id
+	    select i2.item_id || '^' || coalesce(policy_id,#{DUMMY_ID}) || '^' || coalesce(action_id,#{DUMMY_ID}) || '^' ||
+              coalesce(to_char(p.start_date, 'YYYY-MM-DD'), '')
+	    from item i2 left join resourcepolicy p
+            on (p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and p.resource_id=i2.item_id)
+
+            where i2.item_id=#{@item_id}
 	  ), '||') item_policies,
 
-	  (select resource_id || '^' || policy_id || '^' || action_id || '^' ||
-             (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end) || '^#{bundle_title}'
-	   from resourcepolicy p where p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and p.resource_id=
-	     (select resource_id from metadatavalue where text_value='#{bundle_title}' and resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and resource_id in
-                #{bundle_clause}
-	     )
+	  (select mdv.resource_id || '^' || coalesce(p.policy_id,#{DUMMY_ID}) || '^' || coalesce(p.action_id,#{DUMMY_ID}) || '^' ||
+             coalesce(to_char(p.start_date, 'YYYY-MM-DD'), '') || '^#{bundle_title}'
+	   from metadatavalue mdv left join resourcepolicy p
+	   on (p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and p.resource_id=mdv.resource_id)
+
+	   where mdv.text_value='ORIGINAL' and mdv.resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and mdv.resource_id in
+             #{bundle_clause}
 	  ) bundle_policy,
 
 	  array_to_string(array(
-	    select resource_id || '^' || policy_id || '^' || action_id || '^' ||
-	      (case when start_date is null then '' else to_char(start_date, 'YYYY-MM-DD') end) || '^' ||
+	    select b.bitstream_id || '^' || coalesce(policy_id,#{DUMMY_ID}) || '^' || coalesce(p.action_id,#{DUMMY_ID}) || '^' ||
+              coalesce(to_char(p.start_date, 'YYYY-MM-DD'), '') || '^' ||
 	      deleted || '^' || sequence_id || '^' || size_bytes || '^' || internal_id || '^' ||
 	      #{bitstream_text_value_clause('title')} || '^' ||
 	      #{bitstream_text_value_clause('description')} || '^' ||
 	      (select mimetype from bitstreamformatregistry where bitstream_format_id=b.bitstream_format_id)
-	    from resourcepolicy p, bitstream b
-            where p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:bitstream]} and p.resource_id=b.bitstream_id and b.deleted='f' and b.bitstream_id in
+	    from bitstream b left join resourcepolicy p
+	    on (p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:bitstream]} and p.resource_id=b.bitstream_id)
+
+	    where b.deleted='f' and b.bitstream_id in
 	      (select bitstream_id from bundle2bitstream where bundle_id=
 	        (select resource_id from metadatavalue where text_value='#{bundle_title}' and resource_type_id=#{RESOURCE_TYPE_IDS[:bundle]} and resource_id in
                   #{bundle_clause}
@@ -1090,7 +1099,7 @@ class Item2Export
 
   ############################################################################
   def self.initialise_match
-    STDERR.puts "How to match: #{@@how_to_match}"
+    STDERR.puts "INFO: How to match: #{@@how_to_match}"
     case @@how_to_match
     when :DspaceDoiToPureRmid
       initialise_match_rmid_by_doi
@@ -1138,7 +1147,7 @@ class Item2Export
     initialise_is_open_access
     initialise_match
     warn_if_xml_dirs_not_empty
-    FileUtils.mkdir_p(File.dirname(DIR_RESULTS))	# Dir containing CSV files
+    FileUtils.mkdir_p(DIR_RESULTS)	# Dir containing CSV files
 
     # Open CSV files for output
     FasterCSV.open(FPATH_CSV_OUT, "w", FCSV_OUT_OPTS){|csv_out| 
