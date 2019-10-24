@@ -135,7 +135,7 @@ class Item2Export
 	  item_id, in_archive, withdrawn, discoverable,
 
 	  array_to_string(array(
-	    select i2.item_id || '^' || coalesce(policy_id,#{DUMMY_ID}) || '^' || coalesce(action_id,#{DUMMY_ID}) || '^' ||
+	    select i2.item_id || '^' || coalesce(p.policy_id,#{DUMMY_ID}) || '^' || coalesce(p.action_id,#{DUMMY_ID}) || '^' ||
               coalesce(to_char(p.start_date, 'YYYY-MM-DD'), '')
 	    from item i2 left join resourcepolicy p
             on (p.epersongroup_id=#{EPERSON_GROUP_IDS[:public]} and p.resource_type_id=#{RESOURCE_TYPE_IDS[:item]} and p.resource_id=i2.item_id)
@@ -153,7 +153,7 @@ class Item2Export
 	  ) bundle_policy,
 
 	  array_to_string(array(
-	    select b.bitstream_id || '^' || coalesce(policy_id,#{DUMMY_ID}) || '^' || coalesce(p.action_id,#{DUMMY_ID}) || '^' ||
+	    select b.bitstream_id || '^' || coalesce(p.policy_id,#{DUMMY_ID}) || '^' || coalesce(p.action_id,#{DUMMY_ID}) || '^' ||
               coalesce(to_char(p.start_date, 'YYYY-MM-DD'), '') || '^' ||
 	      deleted || '^' || sequence_id || '^' || size_bytes || '^' || internal_id || '^' ||
 	      #{bitstream_text_value_clause('title')} || '^' ||
