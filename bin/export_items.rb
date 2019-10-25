@@ -687,11 +687,11 @@ class Item2Export
   # Look for Elsevier in dc.publisher (& dc.rights & dc.description)
   def get_publisher_elsevier
     # Must be the publisher if found in dc.publisher
-    @dc[:publisher].each{|p| return "Elsevier" if p.match(ELSEVIER_REGEX)}
+    @dc[:publisher].each{|p| return "Elsevier" if p && p.match(ELSEVIER_REGEX)}
 
     # Might be the publisher if found in dc.description or dc.rights
     a = @dc[:description] + @dc[:rights]
-    a.each{|p| return "[Elsevier???]" if p.match(ELSEVIER_REGEX)}
+    a.each{|p| return "[Elsevier???]" if p && p.match(ELSEVIER_REGEX)}
     nil
   end
 
@@ -1171,6 +1171,7 @@ class Item2Export
 
           rescue Exception => e
             STDERR.puts "ERROR item_id:'#{item_id}' -- #{e.inspect}"
+            STDERR.puts e.backtrace
           end
         }
       }
