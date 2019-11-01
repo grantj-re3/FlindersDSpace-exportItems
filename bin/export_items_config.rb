@@ -6,7 +6,18 @@
 # Config vars for ruby
 ##############################################################################
 module Item2ExportConfig
-  ### :DspaceDoiToPureRmid, :DspaceRmidToPureRmid
+  # To limit the number of items processed for debug purposes. Item indices
+  # start at 0.
+  # - To process all items, set ITEM_INDEX_START to 0 and ITEM_INDEX_END
+  #   to 99999 (or some number greater than or equal to N-1, where N is
+  #   the total number of items).
+  # - To only process the first item, set both values to 0.
+  # - To only process the 2nd, 3rd and 4th items, set ITEM_INDEX_START
+  #   to 1 and ITEM_INDEX_END to 3.
+  ITEM_INDEX_START = 0
+  ITEM_INDEX_END = 99999
+
+  # :DspaceDoiToPureRmid or :DspaceRmidToPureRmid
   HOW_TO_MATCH = :DspaceDoiToPureRmid
 
   DEBUG = true

@@ -350,13 +350,19 @@ class Item2Export
     }					# XML attributes
     (sf.keys - [:start_date, :internal_id]).each{|k| attrs[k] = sf[k]}
 
-    attrs[:docversion] = case sf[:fdesc].to_s
-    when /author/i
-      "author"
-    when /publish/i
-      "publisher"
+    attrs[:docversion] = if @@is_open_access
+      case sf[:fdesc].to_s
+      when /author/i
+        "author"
+      when /publish/i
+        "publisher"
+      else
+        "unknown"
+      end
+
     else
-      "unknown"
+      STDERR.puts "INFO: #{__method__}: Closed-access bitstreams are regarded as publisher-version"
+      "publisher"
     end
 
     if sf[:start_date] && !sf[:start_date].empty?
@@ -375,7 +381,7 @@ class Item2Export
       attrs[:has_embargo] = "false"
     end
     attrs[:file_title] = attrs[:fname]
-    attrs[:is_open_access] = @@is_open_access.inspect
+    attrs[:access_to_electronic_version] = @@is_open_access ? "OpenOrEmbargoed" : "Closed"
     attrs
   end
 
@@ -624,19 +630,25 @@ class Item2Export
 
   ############################################################################
   def get_licence_from_authority
-    if @dc[:license].empty?
-      STDERR.puts "WARNING: #{__method__}: No licence"
+    if @@is_open_access
+      if @dc[:license].empty?
+        STDERR.puts "WARNING: #{__method__}: No licence"
+
+      else
+        @dc[:license].each{|desc|
+          unless LICENCE_ABBR_TARGETS.include?(desc)
+            # FIXME: Verify with real data
+            STDERR.puts "WARNING: #{__method__}: Unexpected licence '#{desc}'"
+          end
+          return desc
+        }
+      end
+      nil
 
     else
-      @dc[:license].each{|desc|
-        unless LICENCE_ABBR_TARGETS.include?(desc)
-          # FIXME: Verify with real data
-          STDERR.puts "WARNING: #{__method__}: Unexpected licence '#{desc}'"
-        end
-        return desc
-      }
+      STDERR.puts "INFO: #{__method__}: Closed-access bitstream licences are regarded as 'In Copyright'"
+      "In Copyright"
     end
-    nil
   end
 
   ############################################################################
@@ -653,7 +665,6 @@ class Item2Export
       "In Copyright"
 
     else
-      # FIXME: Issue warning if no licence?
       nil
     end
   end
@@ -1155,7 +1166,8 @@ class Item2Export
         csv_out << get_csv_header_line
         csv_out_omit << get_csv_header_line
 
-        item_batch.each{|item_obj|
+        item_batch.each_with_index{|item_obj,i|
+          next if i < ITEM_INDEX_START || i > ITEM_INDEX_END
           item_id = get_item_id_from_item_obj(item_obj, batch_type)
           item = Item2Export.new(item_id)
           begin
